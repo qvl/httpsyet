@@ -1,0 +1,12 @@
+language: go
+go_import_path: qvl.io/httpsyet
+go:
+  - 1.9
+os:
+  - linux
+  - osx
+after_success: |
+  test "$TRAVIS_OS_NAME" = "linux" -a -n "$TRAVIS_TAG" \
+  && gem install fpm  \
+  && go get github.com/goreleaser/goreleaser \
+  && goreleaser

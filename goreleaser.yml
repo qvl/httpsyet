@@ -1,0 +1,38 @@
+build:
+  goos:
+    - windows
+    - darwin
+    - linux
+  goarch:
+    - amd64
+    - 386
+    - arm
+    - arm64
+archive:
+  format_overrides:
+    - goos: windows
+      format: zip
+  name_template: "{{.Binary}}_{{.Version}}_{{.Os}}_{{.Arch}}"
+  replacements:
+    amd64: 64bit
+    386: 32bit
+    arm: ARM
+    arm64: ARM64
+    darwin: mac
+    linux: linux
+    windows: windows
+brew:
+  github:
+    owner: qvl
+    name: homebrew-tap
+  folder: Formula
+  homepage: https://qvl.io/httpsyet
+  description: Find links you can update to HTTPS
+fpm:
+  homepage: https://qvl.io/httpsyet
+  description: Find links you can update to HTTPS
+  maintainer: Jorin Vogel <hi@jorin.me>
+  license: MIT
+  vendor: qvl
+  formats:
+    - deb
