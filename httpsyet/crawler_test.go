@@ -128,6 +128,7 @@ func TestRun(t *testing.T) {
 	}
 
 	var out, errs bytes.Buffer
+
 	err := httpsyet.Crawler{
 		Out:   &out,
 		Log:   log.New(&errs, "", 0),
@@ -135,9 +136,25 @@ func TestRun(t *testing.T) {
 	}.Run()
 
 	noErr(t, err)
-	eq(t, "", errs.String(), "unexpected errors")
 
-	expect := fmt.Sprintf("%s/ %s/page-a\n%s/subcontent %s/page-b\n", pageServer.URL, tlsServer.URL, pageServer.URL, tlsServer.URL)
+	expect := fmt.Sprintf(
+		"404 %s/404 on page %s/base\n404 %s/404 on page %s/sub\n404 %s/404 on page %s/sub",
+		pageServer.URL,
+		pageServer.URL,
+		httpServer.URL,
+		pageServer.URL,
+		tlsServer.URL,
+		pageServer.URL,
+	)
+	eq(t, expect, errs.String(), "unexpected errors")
+
+	expect = fmt.Sprintf(
+		"%s/ %s/page-a\n%s/subcontent %s/page-b\n",
+		pageServer.URL,
+		tlsServer.URL,
+		pageServer.URL,
+		tlsServer.URL,
+	)
 	eq(t, expect, out.String(), "unexpected output")
 
 	for k, v := range visited {
@@ -194,7 +211,9 @@ func TestConfig(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		doErr(t, tc.err, tc.c.Run())
+		t.Run(tc.err, func(t *testing.T) {
+			doErr(t, tc.err, tc.c.Run())
+		})
 	}
 }
 
