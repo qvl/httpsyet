@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"time"
 
 	"qvl.io/httpsyet/httpsyet"
 	"qvl.io/httpsyet/slackhook"
@@ -41,20 +42,20 @@ Might output:
 
 Errors are reported on stderr.
 
+'httpsyet -parallel 5 -delay 1s' means that per domain you will send max 5 requests per second.
 
 Flags:
 `
-	more       = "\nFor more visit https://qvl.io/httpsyet."
-	slackUsage = `Slack incoming webhook. If set, results are also posted to Slack.
-	See https://api.slack.com/incoming-webhooks.`
+	more = "\nFor more visit https://qvl.io/httpsyet."
 )
 
 // Get command line arguments and start crawling
 func main() {
 	// Flags
-	slackURL := flag.String("slack", "", slackUsage)
-	depth := flag.Int("depth", -1, "")
-	external := flag.Bool("external", false, "")
+	slackURL := flag.String("slack", "", "Slack incoming webhook. If set, results are also posted to Slack. See https://api.slack.com/incoming-webhooks.")
+	depth := flag.Int("depth", -1, "Set to > -1 to specify how many layers of pages to crawl. 0 means links on first page only.")
+	parallel := flag.Int("parallel", 10, "Value needs to be >= 1. Specify how many parallel requests are made per domain.")
+	delay := flag.Duration("delay", time.Second, "Delay between requests.")
 	versionFlag := flag.Bool("version", false, "Print binary version")
 
 	// Parse args
@@ -83,13 +84,19 @@ func main() {
 	}
 	errs := log.New(os.Stderr, "", 0)
 
-	httpsyet.Run(httpsyet.Crawler{
+	err := httpsyet.Crawler{
 		Sites:    sites,
 		Out:      output,
-		Logger:   errs,
+		Log:      errs,
 		Depth:    *depth,
-		External: *external,
-	})
+		Parallel: *parallel,
+		Delay:    *delay,
+	}.Run()
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to crawl: %v", err)
+		os.Exit(1)
+	}
 
 	if *slackURL == "" {
 		return
