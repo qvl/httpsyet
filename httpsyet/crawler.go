@@ -56,7 +56,6 @@ func (c Crawler) Run() error {
 
 	// Collect results via channel since it is not guarantied that the output writer works concurrent
 	results := make(chan string)
-	defer close(results)
 	go func() {
 		for r := range results {
 			if _, err := fmt.Fprintln(c.Out, r); err != nil {
@@ -65,24 +64,20 @@ func (c Crawler) Run() error {
 		}
 	}()
 
+	queue, sites, wait := makeQueue()
+
 	// Send WaitGroup deltas over channel to have the WaitGroup only in one place
-	wait := make(chan int)
-	defer close(wait)
+	wait <- len(urls)
+
 	var wg sync.WaitGroup
-	go func() {
-		for delta := range wait {
-			wg.Add(delta)
-		}
-	}()
-
-	queue, sites := makeQueue()
-	defer close(queue)
-
 	for i := 0; i < parallel(c.Parallel); i++ {
-		go c.crawl(sites, queue, results, wait)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			c.crawl(sites, queue, results, wait)
+		}()
 	}
 
-	wait <- len(urls) - 1
 	for _, u := range urls {
 		queue <- site{
 			URL:    u,
@@ -92,6 +87,7 @@ func (c Crawler) Run() error {
 	}
 
 	wg.Wait()
+	close(results)
 
 	return nil
 }
@@ -139,23 +135,39 @@ func parallel(p int) int {
 }
 
 // Track visited sites via channel to prevent conflicts
-// and ensure each site is visited only once
-// Make sure to close writer, reader is closed automatically
-func makeQueue() (chan<- site, <-chan site) {
-	reader := make(chan site)
-	writer := make(chan site)
+// and ensure each site is visited only once.
+// All channels are closed automatically as soon as queue is empty.
+func makeQueue() (chan<- site, <-chan site, chan<- int) {
+	queueCount := 0
+	wait := make(chan int)
+	sites := make(chan site)
+	queue := make(chan site)
 	visited := map[string]struct{}{}
+
 	go func() {
-		for s := range writer {
+		for delta := range wait {
+			queueCount += delta
+			if queueCount == 0 {
+				close(queue)
+			}
+		}
+	}()
+
+	go func() {
+		for s := range queue {
 			u := s.URL.String()
 			if _, v := visited[u]; !v {
 				visited[u] = struct{}{}
-				reader <- s
+				sites <- s
+			} else {
+				wait <- -1
 			}
 		}
-		close(reader)
+		close(sites)
+		close(wait)
 	}()
-	return writer, reader
+
+	return queue, sites, wait
 }
 
 func (c Crawler) crawl(sites <-chan site, queue chan<- site, results chan<- string, wait chan<- int) {
@@ -179,12 +191,12 @@ func (c Crawler) crawl(sites <-chan site, queue chan<- site, results chan<- stri
 			c.Log.Printf("page %v: %v\n", s.URL, err)
 		}
 
+		wait <- len(urls) - 1
+
 		// Submit links to queue in goroutine to not block workers
 		go queueURLs(queue, urls, s.URL, s.Depth-1)
 
 		time.Sleep(c.Delay)
-
-		wait <- len(urls) - 1
 	}
 }
 

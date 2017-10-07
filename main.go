@@ -53,7 +53,7 @@ Flags:
 func main() {
 	// Flags
 	slackURL := flag.String("slack", "", "Slack incoming webhook. If set, results are also posted to Slack. See https://api.slack.com/incoming-webhooks.")
-	depth := flag.Int("depth", -1, "Set to > -1 to specify how many layers of pages to crawl. 0 means links on first page only.")
+	depth := flag.Int("depth", 0, "Set to > -1 to specify how many layers of pages to crawl. 0 means links on first page only.")
 	parallel := flag.Int("parallel", 10, "Value needs to be >= 1. Specify how many parallel requests are made per domain.")
 	delay := flag.Duration("delay", time.Second, "Delay between requests.")
 	versionFlag := flag.Bool("version", false, "Print binary version")
