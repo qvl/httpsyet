@@ -30,6 +30,10 @@ const (
 </html>
 `
 	basePage = `
+<a href="{{ .Self }}/base">
+	This is an internal link to the same page. Each page should be crawled only once.
+</a>
+
 <a href="http://{{ .TLS }}/page-a">
 	This link is HTTP and when checking if it also works via HTTPS, it should be a 200.
 </a>
@@ -46,8 +50,8 @@ const (
 	This is an internal link which should result in a 404
 </a>
 
-<a href="{{ .Self }}/empty-sub">
-	This is an internal link to a page without children.
+<a href="/empty-sub">
+	This is an relative internal link to a page without children.
 </a>
 
 <a href="{{ .Self }}/sub">
@@ -57,8 +61,8 @@ const (
 `
 
 	subPage = `
-<a href="{{ .Self }}/sub/sub">
-	This is an internal link to a page without children.
+<a href="sub/sub">
+	This is a relative internal link to a page without children.
 </a>
 
 <a href="http://{{ .TLS }}/page-c">
@@ -87,11 +91,11 @@ func TestRun(t *testing.T) {
 	var data interface{}
 
 	// Helpers to serve html and see which pages have been visited.
-	visited := map[string]bool{}
+	visited := map[string]int{}
 	serve := func(name, html string) http.HandlerFunc {
-		visited[name] = false
+		visited[name] = 0
 		return func(w http.ResponseWriter, r *http.Request) {
-			visited[name] = true
+			visited[name]++
 			t.Logf("visited page: %s", name)
 			tmpl, err := template.New(name).Parse(head + html + foot)
 			noErr(t, err)
@@ -115,6 +119,8 @@ func TestRun(t *testing.T) {
 	defer httpServer.Close()
 
 	tlsMux := http.NewServeMux()
+	tlsMux.HandleFunc("/base", serve("tls/base", basic))
+	tlsMux.HandleFunc("/base2", serve("tls/base2", basic))
 	tlsMux.HandleFunc("/page-a", serve("tls/page-a", basic))
 	tlsMux.HandleFunc("/page-b", serve("tls/page-b", basic))
 	tlsMux.HandleFunc("/page-c", serve("tls/page-c", basic))
@@ -130,15 +136,20 @@ func TestRun(t *testing.T) {
 	var out, errs bytes.Buffer
 
 	err := httpsyet.Crawler{
-		Out:   &out,
-		Log:   log.New(&errs, "", 0),
-		Sites: []string{pageServer.URL},
+		Out: &out,
+		Log: log.New(&errs, "", 0),
+		Sites: []string{
+			pageServer.URL + "/base",
+			tlsServer.URL + "/base",
+			tlsServer.URL + "/base2",
+		},
+		Get: tlsServer.Client().Get,
 	}.Run()
 
 	noErr(t, err)
 
 	expect := fmt.Sprintf(
-		"404 %s/404 on page %s/base\n404 %s/404 on page %s/sub\n404 %s/404 on page %s/sub",
+		"404 %s/404 on page %s/base\n404 %s/404 on page %s/sub\n404 %s/404 on page %s/sub\n",
 		pageServer.URL,
 		pageServer.URL,
 		httpServer.URL,
@@ -149,7 +160,7 @@ func TestRun(t *testing.T) {
 	eq(t, expect, errs.String(), "unexpected errors")
 
 	expect = fmt.Sprintf(
-		"%s/ %s/page-a\n%s/subcontent %s/page-b\n",
+		"%s/base %s/page-a\n%s/sub %s/page-c\n",
 		pageServer.URL,
 		tlsServer.URL,
 		pageServer.URL,
@@ -158,8 +169,10 @@ func TestRun(t *testing.T) {
 	eq(t, expect, out.String(), "unexpected output")
 
 	for k, v := range visited {
-		if !v {
+		if v == 0 {
 			t.Errorf("failed to visit page: %s", k)
+		} else if v > 1 {
+			t.Errorf("expected one visit on page %s; got %d", k, v)
 		}
 	}
 }

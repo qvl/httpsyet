@@ -1,3 +1,5 @@
+// Package slackhook proviodes Helpers to send messages to Slack hooks.
+// For more see https://api.slack.com/incoming-webhooks.
 package slackhook
 
 import (
