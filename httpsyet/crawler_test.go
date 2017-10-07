@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 
@@ -157,7 +158,7 @@ func TestRun(t *testing.T) {
 		tlsServer.URL,
 		pageServer.URL,
 	)
-	eq(t, expect, errs.String(), "unexpected errors")
+	eqLines(t, expect, errs.String(), "unexpected errors")
 
 	expect = fmt.Sprintf(
 		"%s/base %s/page-a\n%s/sub %s/page-c\n",
@@ -166,7 +167,7 @@ func TestRun(t *testing.T) {
 		pageServer.URL,
 		tlsServer.URL,
 	)
-	eq(t, expect, out.String(), "unexpected output")
+	eqLines(t, expect, out.String(), "unexpected output")
 
 	for k, v := range visited {
 		if v == 0 {
@@ -230,8 +231,12 @@ func TestConfig(t *testing.T) {
 	}
 }
 
-func eq(t *testing.T, e, a, msg string) {
-	if e != a {
+func eqLines(t *testing.T, e, a, msg string) {
+	es := strings.Split(e, "\n")
+	sort.Strings(es)
+	as := strings.Split(a, "\n")
+	sort.Strings(as)
+	if strings.Join(es, "\n") != strings.Join(as, "\n") {
 		t.Errorf("%s; expected:\n%s\ngot:\n%s", msg, e, a)
 	}
 }
