@@ -29,7 +29,7 @@ Usage: %s [flags] url...
 
 Sites are crawled recursively. Each http:// link is check
 to see if it can be replaced with https://. If a link can be replaced
-it is outputed on stdout, prefixed with the site name it has been found on.
+it is written to stdout, prefixed with the site name it has been found on.
 For example:
 
 	httpsyet https://mysite.com
