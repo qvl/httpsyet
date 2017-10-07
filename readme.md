@@ -1,4 +1,4 @@
-#  :satellite: :key: httpsyet
+#  :satellite: httpsyet :key:
 
 [![GoDoc](https://godoc.org/qvl.io/httpsyet?status.svg)](https://godoc.org/qvl.io/httpsyet)
 [![Build Status](https://travis-ci.org/qvl/httpsyet.svg?branch=master)](https://travis-ci.org/qvl/httpsyet)
