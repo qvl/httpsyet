@@ -189,7 +189,8 @@ func (c Crawler) crawl(sites <-chan site, queue chan<- site, results chan<- stri
 		}
 
 		if shouldUpdate {
-			results <- fmt.Sprintf("%v %v", s.Parent, s.URL)
+			s.URL.Scheme = "http"
+			results <- fmt.Sprintf("%v %v", s.Parent, s.URL.String())
 		}
 
 		urls, err := toURLs(links, s.URL.Parse)

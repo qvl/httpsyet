@@ -171,9 +171,9 @@ func TestRun(t *testing.T) {
 	expect = fmt.Sprintf(
 		"%s/base %s/page-a\n%s/sub %s/page-c\n",
 		pageServer.URL,
-		tlsServer.URL,
+		strings.Replace(tlsServer.URL, "https", "http", 1),
 		pageServer.URL,
-		tlsServer.URL,
+		strings.Replace(tlsServer.URL, "https", "http", 1),
 	)
 	eqLines(t, expect, out.String(), "unexpected output")
 
@@ -257,9 +257,9 @@ func TestRunSingle(t *testing.T) {
 	expect = fmt.Sprintf(
 		"%s/base %s/page-a\n%s/sub %s/page-c\n",
 		pageServer.URL,
-		tlsServer.URL,
+		strings.Replace(tlsServer.URL, "https", "http", 1),
 		pageServer.URL,
-		tlsServer.URL,
+		strings.Replace(tlsServer.URL, "https", "http", 1),
 	)
 	eqLines(t, expect, out.String(), "unexpected output")
 
