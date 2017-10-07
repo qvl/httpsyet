@@ -111,13 +111,19 @@ func (c Crawler) validate() error {
 	return nil
 }
 
+// Returns a list of only valid URLs.
+// Invalid protocols such as mailto or javascript are ignored.
+// The returned error shows all invalid URLs in one message.
 func toURLs(links []string, parse func(string) (*url.URL, error)) (urls []*url.URL, err error) {
 	var invalids []string
 	for _, s := range links {
 		u, e := parse(s)
 		if e != nil {
 			invalids = append(invalids, fmt.Sprintf("%s (%v)", s, e))
-		} else {
+			continue
+		}
+		// Ignore invalid protocols
+		if u.Scheme == "http" || u.Scheme == "https" {
 			urls = append(urls, u)
 		}
 	}

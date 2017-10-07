@@ -59,6 +59,14 @@ const (
 	This is an internal link.
 </a>
 
+<a href="mailto:hi@qvl.io">
+	This is a mailto link. It should be ignored.
+</a>
+
+<a href="javascript:alert('hi')">
+	This is a js link. It should be ignored.
+</a>
+
 `
 
 	subPage = `
