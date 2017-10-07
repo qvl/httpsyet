@@ -43,6 +43,11 @@ brew install qvl/tap/httpsyet
 
 Make sure to use `gofmt` and create a [Pull Request](https://github.com/qvl/httpsyet/pulls).
 
+### Dependencies
+
+Use [`dep ensure -update`](https://github.com/golang/dep) to update dependencies.
+
+
 ### Releasing
 
 Push a new Git tag and [GoReleaser](https://github.com/goreleaser/releaser) will automatically create a release.
