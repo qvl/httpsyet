@@ -78,11 +78,13 @@ func main() {
 	}
 
 	var output io.Writer = os.Stdout
-	var slackBuffer bytes.Buffer
+	var errWriter io.Writer = os.Stderr
+	var slackBuf, slackErrBuf bytes.Buffer
 	if *slackURL != "" {
-		output = io.MultiWriter(os.Stdout, &slackBuffer)
+		output = io.MultiWriter(output, &slackBuf)
+		errWriter = io.MultiWriter(errWriter, &slackErrBuf)
 	}
-	errs := log.New(os.Stderr, "", 0)
+	errs := log.New(errWriter, "", 0)
 
 	err := httpsyet.Crawler{
 		Sites:    sites,
@@ -102,7 +104,11 @@ func main() {
 		return
 	}
 
-	if err := slackhook.Post(*slackURL, slackBuffer.String()); err != nil {
+	msg := slackBuf.String()
+	if e := slackErrBuf.String(); e != "" {
+		msg += "\n\nErrors:\n" + e
+	}
+	if err := slackhook.Post(*slackURL, msg); err != nil {
 		errs.Printf("failed posting to Slack: %v", err)
 		os.Exit(1)
 	}
