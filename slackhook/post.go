@@ -25,7 +25,7 @@ func Post(hook, text string) error {
 }
 
 // PostCustom posts a message to Slack while allowing to overwrite the webhook defaults and http.Post.
-func PostCustom(hook string, d Data, post func(string, string, io.Reader) (*Response, error)) error {
+func PostCustom(hook string, d Data, post func(string, string, io.Reader) (*http.Response, error)) error {
 	buf, err := json.Marshal(d)
 	if err != nil {
 		return fmt.Errorf("cannot marshal json %#v: %v", d, err)

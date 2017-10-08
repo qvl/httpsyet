@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"qvl.io/httpsyet/httpsyet"
+	"qvl.io/httpsyet/internal/slack"
 	"qvl.io/httpsyet/slackhook"
 )
 
@@ -104,10 +105,7 @@ func main() {
 		return
 	}
 
-	msg := slackBuf.String()
-	if e := slackErrBuf.String(); e != "" {
-		msg += "\n\nErrors:\n" + e
-	}
+	msg := slack.Format(slackBuf.String(), slackErrBuf.String())
 	if err := slackhook.Post(*slackURL, msg); err != nil {
 		errs.Printf("failed posting to Slack: %v", err)
 		os.Exit(1)
