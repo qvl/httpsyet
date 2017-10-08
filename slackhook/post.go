@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 )
@@ -20,17 +21,17 @@ type Data struct {
 
 // Post a message to a Slack incoming webhook.
 func Post(hook, text string) error {
-	return PostCustom(hook, Data{Text: text})
+	return PostCustom(hook, Data{Text: text}, http.Post)
 }
 
-// PostCustom posts a message to Slack while allowing to overwrite the webhook defaults.
-func PostCustom(hook string, d Data) error {
+// PostCustom posts a message to Slack while allowing to overwrite the webhook defaults and http.Post.
+func PostCustom(hook string, d Data, post func(string, string, io.Reader) (*Response, error)) error {
 	buf, err := json.Marshal(d)
 	if err != nil {
 		return fmt.Errorf("cannot marshal json %#v: %v", d, err)
 	}
 
-	resp, err := http.Post(hook, "application/json", bytes.NewBuffer(buf))
+	resp, err := post(hook, "application/json", bytes.NewBuffer(buf))
 	if err != nil {
 		return fmt.Errorf("failed to post to Slack: %v", err)
 	}
