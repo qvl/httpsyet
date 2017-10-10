@@ -271,6 +271,89 @@ func TestRunSingle(t *testing.T) {
 		}
 	}
 }
+
+func TestDepth(t *testing.T) {
+	var data interface{}
+
+	// Helpers to serve html and see which pages have been visited.
+	visited := map[string]int{}
+	serve := func(name, html string) http.HandlerFunc {
+		visited[name] = 0
+		return func(w http.ResponseWriter, r *http.Request) {
+			visited[name]++
+			t.Logf("visited page: %s", name)
+			tmpl, err := template.New(name).Parse(head + html + foot)
+			noErr(t, err)
+			err = tmpl.Execute(w, data)
+			noErr(t, err)
+		}
+	}
+
+	pageMux := http.NewServeMux()
+	pageMux.HandleFunc("/base", serve("page/base", basePage))
+	pageMux.HandleFunc("/sub", serve("page/sub", subPage))
+	pageMux.HandleFunc("/empty-sub", serve("page/empty-sub", basic))
+	pageServer := httptest.NewServer(pageMux)
+	defer pageServer.Close()
+
+	httpMux := http.NewServeMux()
+	httpMux.HandleFunc("/page-b", serve("http/page-b", basic))
+	httpServer := httptest.NewServer(httpMux)
+	defer httpServer.Close()
+
+	tlsMux := http.NewServeMux()
+	tlsMux.HandleFunc("/base", serve("tls/base", basic))
+	tlsMux.HandleFunc("/base2", serve("tls/base2", basic))
+	tlsMux.HandleFunc("/page-a", serve("tls/page-a", basic))
+	tlsMux.HandleFunc("/page-b", serve("tls/page-b", basic))
+	tlsServer := httptest.NewTLSServer(tlsMux)
+	defer tlsServer.Close()
+
+	data = struct{ Self, HTTP, TLS string }{
+		Self: pageServer.URL,
+		HTTP: strings.TrimPrefix(httpServer.URL, "http://"),
+		TLS:  strings.TrimPrefix(tlsServer.URL, "https://"),
+	}
+
+	var out, errs bytes.Buffer
+
+	err := httpsyet.Crawler{
+		Out: &out,
+		Log: log.New(&errs, "", 0),
+		Sites: []string{
+			pageServer.URL + "/base",
+			tlsServer.URL + "/base",
+			tlsServer.URL + "/base2",
+		},
+		Get:   tlsServer.Client().Get,
+		Depth: 2,
+	}.Run()
+
+	noErr(t, err)
+
+	expect := fmt.Sprintf(
+		"404 %s/404 on page %s/base\n",
+		pageServer.URL,
+		pageServer.URL,
+	)
+	eqLines(t, expect, errs.String(), "unexpected errors")
+
+	expect = fmt.Sprintf(
+		"%s/base %s/page-a\n",
+		pageServer.URL,
+		strings.Replace(tlsServer.URL, "https", "http", 1),
+	)
+	eqLines(t, expect, out.String(), "unexpected output")
+
+	for k, v := range visited {
+		if v == 0 {
+			t.Errorf("failed to visit page: %s", k)
+		} else if v > 1 {
+			t.Errorf("expected one visit on page %s; got %d", k, v)
+		}
+	}
+}
+
 func TestConfig(t *testing.T) {
 	tt := []struct {
 		err string
