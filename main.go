@@ -28,8 +28,8 @@ Usage: %s [flags] url...
 
   url  one or more URLs you like to be crawled
 
-Sites are crawled recursively. Each http:// link is check
-to see if it can be replaced with https://. If a link can be replaced
+Sites are crawled recursively. Each http:// link is checked
+to see if it can be replaced with https://. If a link can be replaced,
 it is written to stdout, prefixed with the site name it has been found on.
 For example:
 
@@ -43,7 +43,7 @@ Might output:
 
 Errors are reported on stderr.
 
-'httpsyet -parallel 5 -delay 1s' means that per domain you will send max 5 requests per second.
+'httpsyet -parallel 5 -delay 1s' means that you will have max 5 requests per second.
 
 Flags:
 `
@@ -54,7 +54,7 @@ Flags:
 func main() {
 	// Flags
 	slackURL := flag.String("slack", "", "Slack incoming webhook. If set, results are also posted to Slack. See https://api.slack.com/incoming-webhooks.")
-	depth := flag.Int("depth", 0, "Set to > -1 to specify how many layers of pages to crawl. 0 means links on first page only.")
+	depth := flag.Int("depth", 0, "Set to >=1 to specify how many layers of pages to crawl.")
 	parallel := flag.Int("parallel", 10, "Value needs to be >= 1. Specify how many parallel requests are made per domain.")
 	delay := flag.Duration("delay", time.Second, "Delay between requests.")
 	versionFlag := flag.Bool("version", false, "Print binary version")

@@ -66,7 +66,6 @@ func (c Crawler) Run() error {
 
 	queue, sites, wait := makeQueue()
 
-	// Send WaitGroup deltas over channel to have the WaitGroup only in one place
 	wait <- len(urls)
 
 	var wg sync.WaitGroup
