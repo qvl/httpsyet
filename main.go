@@ -57,7 +57,8 @@ func main() {
 	depth := flag.Int("depth", 0, "Set to >=1 to specify how many layers of pages to crawl.")
 	parallel := flag.Int("parallel", 10, "Value needs to be >= 1. Specify how many parallel requests are made per domain.")
 	delay := flag.Duration("delay", time.Second, "Delay between requests.")
-	versionFlag := flag.Bool("version", false, "Print binary version")
+	versionFlag := flag.Bool("version", false, "Print binary version.")
+	verbose := flag.Bool("verbose", false, "Output status updates to standard error.")
 
 	// Parse args
 	flag.Usage = func() {
@@ -94,6 +95,7 @@ func main() {
 		Depth:    *depth,
 		Parallel: *parallel,
 		Delay:    *delay,
+		Verbose:  *verbose,
 	}.Run()
 
 	if err != nil {

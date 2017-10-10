@@ -28,6 +28,7 @@ type Crawler struct {
 	Parallel int                                  // Optional. Set how many sites to crawl in parallel.
 	Delay    time.Duration                        // Optional. Set delay between crawls.
 	Get      func(string) (*http.Response, error) // Optional. Defaults to http.Get.
+	Verbose  bool                                 // Optional. If set, status updates are written to logger.
 }
 
 type site struct {
@@ -177,6 +178,10 @@ func makeQueue() (chan<- site, <-chan site, chan<- int) {
 
 func (c Crawler) crawl(sites <-chan site, queue chan<- site, results chan<- string, wait chan<- int) {
 	for s := range sites {
+		if c.Verbose {
+			c.Log.Printf("verbose: GET %s\n", s.URL)
+		}
+
 		links, shouldUpdate, err := crawlSite(s, c.Get)
 
 		if err != nil {

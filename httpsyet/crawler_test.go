@@ -272,7 +272,7 @@ func TestRunSingle(t *testing.T) {
 	}
 }
 
-func TestDepth(t *testing.T) {
+func TestDepthVerboseNoParallel(t *testing.T) {
 	var data interface{}
 
 	// Helpers to serve html and see which pages have been visited.
@@ -297,7 +297,6 @@ func TestDepth(t *testing.T) {
 	defer pageServer.Close()
 
 	httpMux := http.NewServeMux()
-	httpMux.HandleFunc("/page-b", serve("http/page-b", basic))
 	httpServer := httptest.NewServer(httpMux)
 	defer httpServer.Close()
 
@@ -325,14 +324,38 @@ func TestDepth(t *testing.T) {
 			tlsServer.URL + "/base",
 			tlsServer.URL + "/base2",
 		},
-		Get:   tlsServer.Client().Get,
-		Depth: 2,
+		Get:      tlsServer.Client().Get,
+		Depth:    2,
+		Verbose:  true,
+		Parallel: 1,
 	}.Run()
 
 	noErr(t, err)
 
 	expect := fmt.Sprintf(
-		"404 %s/404 on page %s/base\n",
+		`verbose: GET %s/base
+verbose: GET %s/base
+verbose: GET %s/base2
+verbose: GET %s/page-a
+verbose: GET %s/page-b
+verbose: GET %s/page-a
+404 %s/page-a on page %s/base
+verbose: GET %s/404
+404 %s/404 on page %s/base
+verbose: GET %s/empty-sub
+verbose: GET %s/sub
+`,
+		pageServer.URL,
+		tlsServer.URL,
+		tlsServer.URL,
+		httpServer.URL,
+		tlsServer.URL,
+		strings.Replace(tlsServer.URL, "https", "http", 1),
+		httpServer.URL,
+		pageServer.URL,
+		pageServer.URL,
+		pageServer.URL,
+		pageServer.URL,
 		pageServer.URL,
 		pageServer.URL,
 	)
@@ -412,8 +435,10 @@ func eqLines(t *testing.T, e, a, msg string) {
 	sort.Strings(es)
 	as := strings.Split(a, "\n")
 	sort.Strings(as)
-	if strings.Join(es, "\n") != strings.Join(as, "\n") {
-		t.Errorf("%s; expected:\n%s\ngot:\n%s", msg, e, a)
+	ej := strings.Join(es, "\n")
+	aj := strings.Join(as, "\n")
+	if ej != aj {
+		t.Errorf("%s; expected:\n%s\ngot:\n%s", msg, ej, aj)
 	}
 }
 
