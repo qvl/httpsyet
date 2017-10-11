@@ -45,7 +45,7 @@ Make sure to use `gofmt` and create a [Pull Request](https://github.com/qvl/http
 
 ### Dependencies
 
-Use [`dep ensure -update`](https://github.com/golang/dep) to update dependencies.
+Use [`dep ensure -update && dep prune`](https://github.com/golang/dep) to update dependencies.
 
 
 ### Releasing
