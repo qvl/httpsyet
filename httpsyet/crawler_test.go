@@ -55,6 +55,10 @@ const (
 	This is an relative internal link to a page without children.
 </a>
 
+<a href="/redirect">
+	This is an internal link but it redirects to an external page.
+</a>
+
 <a href="{{ .Self }}/sub">
 	This is an internal link.
 </a>
@@ -94,6 +98,12 @@ const (
 	basic = `
 <h1>Welcome to the basic page</h1>
 `
+
+	redirectTarget = `
+<a href="/no-follow">
+	This link after redirecting should not be followed.
+</a>
+`
 )
 
 func TestRun(t *testing.T) {
@@ -113,19 +123,30 @@ func TestRun(t *testing.T) {
 		}
 	}
 
+	redirect := func(name, u string) http.HandlerFunc {
+		visited[name] = 0
+		return func(w http.ResponseWriter, r *http.Request) {
+			visited[name]++
+			t.Logf("visited page: %s", name)
+			http.Redirect(w, r, u, http.StatusMovedPermanently)
+		}
+	}
+
+	httpMux := http.NewServeMux()
+	httpMux.HandleFunc("/page-a", serve("http/page-a", basic))
+	httpMux.HandleFunc("/page-b", serve("http/page-b", basic))
+	httpMux.HandleFunc("/redirect-target", serve("http/redirect-target", redirectTarget))
+	httpServer := httptest.NewServer(httpMux)
+	defer httpServer.Close()
+
 	pageMux := http.NewServeMux()
 	pageMux.HandleFunc("/base", serve("page/base", basePage))
 	pageMux.HandleFunc("/sub", serve("page/sub", subPage))
 	pageMux.HandleFunc("/empty-sub", serve("page/empty-sub", basic))
 	pageMux.HandleFunc("/sub/sub", serve("page/sub/sub", basic))
+	pageMux.HandleFunc("/redirect", redirect("page/redirect", httpServer.URL+"/redirect-target"))
 	pageServer := httptest.NewServer(pageMux)
 	defer pageServer.Close()
-
-	httpMux := http.NewServeMux()
-	httpMux.HandleFunc("/page-a", serve("http/page-a", basic))
-	httpMux.HandleFunc("/page-b", serve("http/page-b", basic))
-	httpServer := httptest.NewServer(httpMux)
-	defer httpServer.Close()
 
 	tlsMux := http.NewServeMux()
 	tlsMux.HandleFunc("/base", serve("tls/base", basic))
@@ -244,7 +265,13 @@ func TestRunSingle(t *testing.T) {
 	noErr(t, err)
 
 	expect := fmt.Sprintf(
-		"404 %s/404 on page %s/base\n404 %s/404 on page %s/sub\n404 %s/404 on page %s/sub\n",
+		`404 %s/404 on page %s/base
+404 %s/redirect on page %s/base
+404 %s/404 on page %s/sub
+404 %s/404 on page %s/sub
+`,
+		pageServer.URL,
+		pageServer.URL,
 		pageServer.URL,
 		pageServer.URL,
 		httpServer.URL,
@@ -343,6 +370,8 @@ verbose: GET %s/page-a
 verbose: GET %s/404
 404 %s/404 on page %s/base
 verbose: GET %s/empty-sub
+verbose: GET %s/redirect
+404 %s/redirect on page %s/base
 verbose: GET %s/sub
 `,
 		pageServer.URL,
@@ -352,6 +381,9 @@ verbose: GET %s/sub
 		tlsServer.URL,
 		strings.Replace(tlsServer.URL, "https", "http", 1),
 		httpServer.URL,
+		pageServer.URL,
+		pageServer.URL,
+		pageServer.URL,
 		pageServer.URL,
 		pageServer.URL,
 		pageServer.URL,

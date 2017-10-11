@@ -122,6 +122,10 @@ func toURLs(links []string, parse func(string) (*url.URL, error)) (urls []*url.U
 			invalids = append(invalids, fmt.Sprintf("%s (%v)", s, e))
 			continue
 		}
+		// Default to https
+		if u.Scheme == "" {
+			u.Scheme = "https"
+		}
 		// Ignore invalid protocols
 		if u.Scheme == "http" || u.Scheme == "https" {
 			urls = append(urls, u)
@@ -238,6 +242,11 @@ func crawlSite(s site, get func(string) (*http.Response, error)) ([]string, bool
 
 	if r.StatusCode >= 400 {
 		return nil, false, fmt.Errorf("%d %v", r.StatusCode, u)
+	}
+
+	// Stop when redirecting to external page
+	if r.Request.URL.Host != u.Host {
+		isExternal = true
 	}
 
 	// Stop when site is external.
