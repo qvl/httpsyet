@@ -57,6 +57,7 @@ func (c Crawler) Run() error {
 
 	// Collect results via channel since it is not guarantied that the output writer works concurrent
 	results := make(chan string)
+	defer close(results)
 	go func() {
 		for r := range results {
 			if _, err := fmt.Fprintln(c.Out, r); err != nil {
@@ -74,7 +75,8 @@ func (c Crawler) Run() error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.crawl(sites, queue, results, wait)
+			// Pass channels to each worker
+			c.worker(sites, queue, wait, results)
 		}()
 	}
 
@@ -87,7 +89,6 @@ func (c Crawler) Run() error {
 	}
 
 	wg.Wait()
-	close(results)
 
 	return nil
 }
@@ -180,7 +181,12 @@ func makeQueue() (chan<- site, <-chan site, chan<- int) {
 	return queue, sites, wait
 }
 
-func (c Crawler) crawl(sites <-chan site, queue chan<- site, results chan<- string, wait chan<- int) {
+func (c Crawler) worker(
+	sites <-chan site,
+	queue chan<- site,
+	wait chan<- int,
+	results chan<- string,
+) {
 	for s := range sites {
 		if c.Verbose {
 			c.Log.Printf("verbose: GET %s\n", s.URL)
