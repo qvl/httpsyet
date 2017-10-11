@@ -9,9 +9,10 @@ The web is moving to HTTPS, [slowly](https://jorin.me/https-for-one-month/).
 In a happy future, we will have secure connections only.
 Today, though, we still have to deal with HTTP.
 We are getting better. Thank you [Let's Encrypt](https://letsencrypt.org/).
+
 Now we only need to update all those `http://` links on our pages to `https://`.
 Not all sites support HTTPS yet. But maybe they do tomorrow.
-How do we know? - `httpyet`.
+How do we know? - `httpsyet`.
 
 ```sh
 httpsyet -slack $SLACK_HOOK https://firstsite.com https://secondsite.biz http://thirdsite.net
@@ -23,6 +24,8 @@ A list of all URLs you can update is sent to Slack.
 
 Set this up with your favorite job scheduler ([Cron](https://en.wikipedia.org/wiki/Cron), [sleepto](https://github.com/qvl/sleepto), ...) to run once a month.
 
+
+[Find out more about the implementation](https://jorin.me/use-go-channels-to-build-a-crawler/).
 
 ## Install
 
