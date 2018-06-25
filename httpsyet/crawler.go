@@ -37,7 +37,7 @@ type site struct {
 	Depth  int
 }
 
-// Run the cralwer.
+// Run the crawler.
 // Can return validation errors.
 // All crawling errors are reported via logger.
 // Output is written to writer.
@@ -139,7 +139,7 @@ func toURLs(links []string, parse func(string) (*url.URL, error)) (urls []*url.U
 }
 
 func parallel(p int) int {
-	if p == 0 {
+	if p < 1 {
 		return defaultParallel
 	}
 	return p
