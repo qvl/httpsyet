@@ -112,12 +112,42 @@ func (c Crawler) validate() error {
 	return nil
 }
 
+// TODO: how are we handling javascript: and so on?
+// what about URL without http:// ? Like example.com or 127.0.0.1:1234
+func isRelativeWithoutSlash(s string) bool {
+	if strings.HasPrefix(s, "http://") {
+		return false
+	}
+	if strings.HasPrefix(s, "https://") {
+		return false
+	}
+	if strings.HasPrefix(s, "/") {
+		return false
+	}
+	if strings.HasPrefix(s, "./") {
+		return false
+	}
+	if strings.HasPrefix(s, "../") {
+		return false
+	}
+	if strings.HasPrefix(s, "javascript:") {
+		return false
+	}
+	if strings.HasPrefix(s, "mailto:") {
+		return false
+	}
+	return true
+}
+
 // Returns a list of only valid URLs.
 // Invalid protocols such as mailto or javascript are ignored.
 // The returned error shows all invalid URLs in one message.
 func toURLs(links []string, parse func(string) (*url.URL, error)) (urls []*url.URL, err error) {
 	var invalids []string
 	for _, s := range links {
+		if isRelativeWithoutSlash(s) {
+			s = "./" + s
+		}
 		u, e := parse(s)
 		if e != nil {
 			invalids = append(invalids, fmt.Sprintf("%s (%v)", s, e))
@@ -270,7 +300,7 @@ func getLinks(r io.Reader) ([]string, error) {
 
 	doc, err := html.Parse(r)
 	if err != nil {
-		return links, fmt.Errorf("failed to parse HTML: %v\n", err)
+		return links, fmt.Errorf("failed to parse html: %v", err)
 	}
 
 	var f func(n *html.Node)

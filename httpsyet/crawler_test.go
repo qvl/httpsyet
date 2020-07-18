@@ -47,19 +47,31 @@ const (
 	This link is HTTP and when checking if it also works via HTTPS, it should fail. But it should still work via HTTP.
 </a>
 
+<a href="http://{{ .HTTP }}/page-a">
+	This link is HTTP and when checking if it also works via HTTPS, it should fail. But it should still work via HTTP.
+</a>
+
 <a href="{{ .Self }}/404">
 	This is an internal link which should result in a 404
 </a>
 
-<a href="/empty-sub">
+<a href="sub/">
 	This is an relative internal link to a page without children.
+</a>
+
+<a href="/empty-sub">
+	This is an absolute internal link to a page without children.
 </a>
 
 <a href="/redirect">
 	This is an internal link but it redirects to an external page.
 </a>
 
-<a href="{{ .Self }}/sub">
+<a href="{{ .Self }}/sub/">
+	This is an internal link.
+</a>
+
+<a href="{{ .Self }}/sub/">
 	This is an internal link.
 </a>
 
@@ -74,8 +86,16 @@ const (
 `
 
 	subPage = `
-<a href="sub/sub">
+<a href="unique-sub">
 	This is a relative internal link to a page without children.
+</a>
+
+<a href="./unique-sub">
+	This is a relative internal link to a page without children.
+</a>
+
+<a href="/sub/unique-sub">
+	This is a absolute internal link to a page without children.
 </a>
 
 <a href="http://{{ .TLS }}/page-c">
@@ -141,9 +161,9 @@ func TestRun(t *testing.T) {
 
 	pageMux := http.NewServeMux()
 	pageMux.HandleFunc("/base", serve("page/base", basePage))
-	pageMux.HandleFunc("/sub", serve("page/sub", subPage))
+	pageMux.HandleFunc("/sub/", serve("page/sub", subPage))
 	pageMux.HandleFunc("/empty-sub", serve("page/empty-sub", basic))
-	pageMux.HandleFunc("/sub/sub", serve("page/sub/sub", basic))
+	pageMux.HandleFunc("/sub/unique-sub", serve("page/sub/unique-sub", basic))
 	pageMux.HandleFunc("/redirect", redirect("page/redirect", httpServer.URL+"/redirect-target"))
 	pageServer := httptest.NewServer(pageMux)
 	defer pageServer.Close()
@@ -179,7 +199,7 @@ func TestRun(t *testing.T) {
 	noErr(t, err)
 
 	expect := fmt.Sprintf(
-		"404 %s/404 on page %s/base\n404 %s/404 on page %s/sub\n404 %s/404 on page %s/sub\n",
+		"404 %s/404 on page %s/base\n404 %s/404 on page %s/sub/\n404 %s/404 on page %s/sub/\n",
 		pageServer.URL,
 		pageServer.URL,
 		httpServer.URL,
@@ -190,7 +210,7 @@ func TestRun(t *testing.T) {
 	eqLines(t, expect, errs.String(), "unexpected errors")
 
 	expect = fmt.Sprintf(
-		"%s/base %s/page-a\n%s/sub %s/page-c\n",
+		"%s/base %s/page-a\n%s/sub/ %s/page-c\n",
 		pageServer.URL,
 		strings.Replace(tlsServer.URL, "https", "http", 1),
 		pageServer.URL,
@@ -226,9 +246,9 @@ func TestRunSingle(t *testing.T) {
 
 	pageMux := http.NewServeMux()
 	pageMux.HandleFunc("/base", serve("page/base", basePage))
-	pageMux.HandleFunc("/sub", serve("page/sub", subPage))
+	pageMux.HandleFunc("/sub/", serve("page/sub", subPage))
 	pageMux.HandleFunc("/empty-sub", serve("page/empty-sub", basic))
-	pageMux.HandleFunc("/sub/sub", serve("page/sub/sub", basic))
+	pageMux.HandleFunc("/sub/unique-sub", serve("page/sub/unique-sub", basic))
 	pageServer := httptest.NewServer(pageMux)
 	defer pageServer.Close()
 
@@ -267,8 +287,8 @@ func TestRunSingle(t *testing.T) {
 	expect := fmt.Sprintf(
 		`404 %s/404 on page %s/base
 404 %s/redirect on page %s/base
-404 %s/404 on page %s/sub
-404 %s/404 on page %s/sub
+404 %s/404 on page %s/sub/
+404 %s/404 on page %s/sub/
 `,
 		pageServer.URL,
 		pageServer.URL,
@@ -282,7 +302,7 @@ func TestRunSingle(t *testing.T) {
 	eqLines(t, expect, errs.String(), "unexpected errors")
 
 	expect = fmt.Sprintf(
-		"%s/base %s/page-a\n%s/sub %s/page-c\n",
+		"%s/base %s/page-a\n%s/sub/ %s/page-c\n",
 		pageServer.URL,
 		strings.Replace(tlsServer.URL, "https", "http", 1),
 		pageServer.URL,
@@ -318,7 +338,7 @@ func TestDepthVerboseNoParallel(t *testing.T) {
 
 	pageMux := http.NewServeMux()
 	pageMux.HandleFunc("/base", serve("page/base", basePage))
-	pageMux.HandleFunc("/sub", serve("page/sub", subPage))
+	pageMux.HandleFunc("/sub/", serve("page/sub", subPage))
 	pageMux.HandleFunc("/empty-sub", serve("page/empty-sub", basic))
 	pageServer := httptest.NewServer(pageMux)
 	defer pageServer.Close()
@@ -372,7 +392,7 @@ verbose: GET %s/404
 verbose: GET %s/empty-sub
 verbose: GET %s/redirect
 404 %s/redirect on page %s/base
-verbose: GET %s/sub
+verbose: GET %s/sub/
 `,
 		pageServer.URL,
 		tlsServer.URL,
