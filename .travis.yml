@@ -5,7 +5,13 @@ go:
 os:
   - linux
   - osx
-after_success: |
-  test "$TRAVIS_OS_NAME" = "linux" -a -n "$TRAVIS_TAG" \
-  && curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh \
-  && ./bin/goreleaser
+script:
+  - go test ./...
+  - curl -sfL https://git.io/goreleaser | sh -s -- check
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: curl -sL https://git.io/goreleaser | bash
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux
