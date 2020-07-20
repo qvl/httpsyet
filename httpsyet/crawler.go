@@ -115,6 +115,9 @@ func (c Crawler) validate() error {
 // TODO: how are we handling javascript: and so on?
 // what about URL without http:// ? Like example.com or 127.0.0.1:1234
 func isRelativeWithoutSlash(s string) bool {
+	if strings.HasPrefix(s, "#") {
+		return false
+	}
 	if strings.HasPrefix(s, "http://") {
 		return false
 	}
@@ -139,6 +142,29 @@ func isRelativeWithoutSlash(s string) bool {
 	return true
 }
 
+func ensureTrailingSlash(u *url.URL) *url.URL {
+	if len(u.Path) == 0 {
+		return u
+	}
+	parts := strings.Split(u.Path, "/")
+	if len(parts) == 0 {
+		return u
+	}
+	// No trailing slash if there is a file extension
+	if strings.Contains(parts[len(parts)-1], ".") {
+		return u
+	}
+	if u.Path[len(u.Path)-1] == '/' {
+		return u
+	}
+	uNew, err := url.Parse(u.String())
+	if err != nil {
+		panic(err)
+	}
+	uNew.Path = uNew.Path + "/"
+	return uNew
+}
+
 // Returns a list of only valid URLs.
 // Invalid protocols such as mailto or javascript are ignored.
 // The returned error shows all invalid URLs in one message.
@@ -153,6 +179,8 @@ func toURLs(links []string, parse func(string) (*url.URL, error)) (urls []*url.U
 			invalids = append(invalids, fmt.Sprintf("%s (%v)", s, e))
 			continue
 		}
+		// Remove #hash
+		u.Fragment = ""
 		// Default to https
 		if u.Scheme == "" {
 			u.Scheme = "https"
@@ -237,7 +265,10 @@ func (c Crawler) worker(
 			results <- fmt.Sprintf("%v %v", s.Parent, s.URL.String())
 		}
 
-		urls, err := toURLs(links, s.URL.Parse)
+		// Ensure we can resolve relative paths properly
+		urlWithTrailingSlash := ensureTrailingSlash(s.URL)
+
+		urls, err := toURLs(links, urlWithTrailingSlash.Parse)
 		if err != nil {
 			c.Log.Printf("page %v: %v\n", s.URL, err)
 		}

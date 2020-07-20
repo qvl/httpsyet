@@ -55,7 +55,7 @@ const (
 	This is an internal link which should result in a 404
 </a>
 
-<a href="sub/">
+<a href="/sub/">
 	This is an relative internal link to a page without children.
 </a>
 
